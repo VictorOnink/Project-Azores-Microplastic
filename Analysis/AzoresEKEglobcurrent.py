@@ -19,6 +19,7 @@ import geopy.distance as dis
 import math
 import pandas as pd
 import matplotlib.dates as mdates
+import os
 
 
 earth_radius = 6371.0 #km
@@ -62,7 +63,7 @@ for k in range(2010,2019):
             month='0'+str(m)
         else:
             month=str(m)
-        File='D:\Desktop\Bern Projects\Azores Microplastic Origin\EKE\globCurrentEKE-'+str(k)+'-'+month+'.nc'
+        File='D:\Desktop\Bern Projects\Azores Microplastic Origin\EKE\GlobCurrent/globCurrentEKE-'+str(k)+'-'+month+'.nc'
         dataset=Dataset(File)
         lon=dataset.variables['longitude'][593:622]
         lat=dataset.variables['latitude'][461:476]
@@ -72,9 +73,26 @@ for k in range(2010,2019):
         for i in range(len(time)):
             azoresEKEtime.append(datetime(1950,1,1,0,0)+timedelta(hours=time[i]))
             azoresEKE.append(np.nanmean(EKE[i,:,:]))
+#%%            
+azoresAltiEKE=[]
+azoresAltiEKEtime=[]
+directory='D:\Desktop\Bern Projects\Azores Microplastic Origin\EKE'
+ls=os.listdir(directory)[:-1] #last one is a directory, don't want that
+for File in ls:
+    datasetAlti=Dataset(directory+'/'+File)
+    lonAlti=datasetAlti.variables['longitude'][1313:1342]
+    latAlti=datasetAlti.variables['latitude'][505:521]
+    EKEalti=datasetAlti.variables['EKE'][:,505:521,1313:1342]
+    timeAlti=datasetAlti.variables['time'][:]
+    azoresAltiEKEtime.append(datetime(1950,1,1,0,0)+timedelta(days=timeAlti[0]))
+    azoresAltiEKE.append(np.nanmean(EKEalti[0,:,:]))
+azoresAltiEKE=np.array(azoresAltiEKE)
 #%% Calculate the weekly running mean average of the EKE
 EKEmean=pd.DataFrame({'EKE':azoresEKE})
 EKEmean=EKEmean.rolling(7,win_type=None).mean()
+
+EKEmeanAlti=pd.DataFrame({'EKE':azoresAltiEKE})
+EKEmeanAlti=EKEmeanAlti.rolling(7,win_type=None).mean()
 #%% Cool, now I want to have a plot that has a time axis from 2012 - 2018 and lines
 # indicating the normal and special events
 axeslabelsize=14
@@ -87,8 +105,10 @@ yearsFmt = mdates.DateFormatter('%Y')
 empty= mdates.DateFormatter('')
 fig=plt.figure(figsize=(10*1.5,8*1.5))
 ax1 = fig.add_subplot(111)
-#ax1.semilogy(azoresEKEtime,azoresEKE,'silver',label='Average EKE Azores')
-ax1.plot(azoresEKEtime,100*EKEmean,'k',label='EKE 7-Day Running Average',linewidth=2)
+#ax1.plot(azoresAltiEKEtime,100*azoresAltiEKE,'silver',label='Average EKE Azores',zorder=10)
+#ax1.plot(azoresEKEtime,100*EKEmean,'k',label='EKE 7-Day Running Average',linewidth=2)
+ax1.plot(azoresAltiEKEtime,100*EKEmeanAlti,'k',label='EKE 7-Day Running Average',linewidth=2)
+
 for i in range(len(normEvDates)):
     ax1.axvspan(normEvDates[i],normEvDates[i], alpha=0.5, color='blue',
                 label='Non-Pellet Events')
@@ -106,7 +126,7 @@ ax1.xaxis.set_minor_locator(months)
 datemin = datetime(2012, 1, 1,0,0)
 datemax = datetime(2019, 1, 1,0,0)
 ax1.set_ylabel(r'EKE ($\times 10^{-2}$ m$^2$ s$^{-1}$)',fontsize=axeslabelsize)
-ax1.set_ylim([0,4])
+ax1.set_ylim([0.2,0.9])
 ax1.set_xlim(datemin, datemax)
 ax1.tick_params(labelsize=textsize)
 #ax1.set_xlabel('Time (yr)',fontsize=axeslabelsize)
@@ -116,7 +136,7 @@ ax1.tick_params(which='minor',length=3)
 ax1.legend(fontsize=axeslabelsize,loc=1)
 fig.autofmt_xdate()
 plt.tight_layout()
-plt.savefig('D:\Desktop\Bern Projects\Azores Microplastic Origin\Figures/AzoresEKE_events2012-2018.jpg')
+plt.savefig('D:\Desktop\Bern Projects\Azores Microplastic Origin\Figures/AzoresEKE_events2012-2018-Alti.jpg')
 
 
 #%% Keeping it just to 2017, which are the events we are properly considering
@@ -132,7 +152,9 @@ monthsFmt=mdates.DateFormatter('%m-%Y')
 fig=plt.figure(figsize=(10*1.5,8*1.5))
 ax1 = fig.add_subplot(111)
 #ax1.semilogy(azoresEKEtime,azoresEKE,'silver',label='Average EKE Azores')
-ax1.plot(azoresEKEtime,100*EKEmean,'k',label='EKE 7-Day Running Average',linewidth=2)
+#ax1.plot(azoresEKEtime,100*EKEmean,'k',label='EKE 7-Day Running Average',linewidth=2)
+ax1.plot(azoresAltiEKEtime,100*EKEmeanAlti,'k',label='EKE 7-Day Running Average',linewidth=2)
+
 for i in range(len(normEvDates)):
     ax1.axvspan(normEvDates[i],normEvDates[i], alpha=0.5, color='blue',
                 label='Non-Pellet Events')
@@ -150,15 +172,15 @@ ax1.xaxis.set_minor_locator(days)
 datemin = datetime(2017, 1, 1,0,0)
 datemax = datetime(2018, 8, 1,0,0)
 ax1.set_ylabel(r'EKE ($\times 10^{-2}$ m$^2$ s$^{-1}$)',fontsize=axeslabelsize)
-ax1.set_ylim([0,3])
+ax1.set_ylim([0.2,.6])
 ax1.set_xlim(datemin, datemax)
 ax1.tick_params(labelsize=textsize)
 #ax1.set_xlabel('Time (yr)',fontsize=axeslabelsize)
 ax1.set_title('Average EKE in Azores with Non-Pellet and Pellet Events',fontsize=axeslabelsize,fontweight='bold')
 ax1.tick_params(which='major',length=7)
 ax1.tick_params(which='minor',length=3)            
-ax1.legend(fontsize=axeslabelsize,loc=2)
+ax1.legend(fontsize=axeslabelsize,loc=4)
 fig.autofmt_xdate()
 plt.tight_layout()
-plt.savefig('D:\Desktop\Bern Projects\Azores Microplastic Origin\Figures/AzoresEKE_events2017-2018.jpg')
+plt.savefig('D:\Desktop\Bern Projects\Azores Microplastic Origin\Figures/AzoresEKE_events2017-2018-Alti.jpg')
 
