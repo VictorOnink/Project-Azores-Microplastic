@@ -2,7 +2,7 @@
 """
 Created on Wed Mar 14 14:43:49 2018
 
-@author: Tori Amos
+@author: Victor Onink
 """
 
 from parcels import FieldSet, ParticleSet, JITParticle, AdvectionRK4,ErrorCode, plotTrajectoriesFile,Variable
